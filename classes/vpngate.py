@@ -3,11 +3,11 @@ import requests
 import subprocess
 import sys
 import time
-import urllib2
+import urllib
 from clint.textui import progress
 import re
 
-from utils import Utils
+from classes.utils import Utils
 
 cr = None
 MISSING = object()
@@ -23,10 +23,7 @@ class VPNGateApp:
  
 
     def write_openvpn_file(self,b64ovpndata, vpnname):
-	"""takes a base64 string and saves it out as an .ovpn file"""
-
-	openvpnconfigpath = ".vpnconfigs/vpnconfig_{0}.ovpn".format(vpnname)
-
+        openvpnconfigpath = ".vpnconfigs/vpnconfig_{0}.ovpn".format(vpnname)
         decoded_ovpndata = b64ovpndata.decode('base64')
 
         Utils.create_directory_path(openvpnconfigpath)
@@ -54,7 +51,7 @@ class VPNGateApp:
                 match = pattern.match(line)
 
                 if match:
-                    print "found: " + match.group(1)
+                    print ("found: " + match.group(1))
                     protocol = match.group(1)
                 else:
                    pass
@@ -64,7 +61,7 @@ class VPNGateApp:
                 match2 = pattern2.match(line)
 
                 if match2:
-                    print "found: " + match2.group(1) + " " + match2.group(2) 
+                    print ("found: " + match2.group(1) + " " + match2.group(2) )
                     address_and_port = match2
                     address  = match2.group(1)
                     port     = match2.group(2)
@@ -75,8 +72,6 @@ class VPNGateApp:
 
 
     def run_ovpn_config(self, path):
-	"""opens a process on the host OS to launch openvpn with the new config"""
-
         x = subprocess.Popen(['sudo', 'openvpn', '--config', path])
         try:
             while True:
@@ -90,16 +85,14 @@ class VPNGateApp:
                 pass
             while x.poll() != 0:
                 time.sleep(1)
-            print '\nVPN terminated'
+            print ('\nVPN terminated')
             Utils.send_message("vpn terminated","the vpn is now gone")
         return
 
 
     def grab_csv(self):
-        """grabs the csv from the vpngate website"""
-
-        print "grabbing VPNGate CSV from : {0}, this may take a minute...".format(self.URL)
-	print "ctrl+c if you already have a cached list"
+        print ("grabbing VPNGate CSV from : {0}, this may take a minute...".format(self.URL))
+        print ("ctrl+c if you already have a cached list")
  
         try:
             with requests.Session() as session:
@@ -108,10 +101,10 @@ class VPNGateApp:
                 csvdatapath = ".cache/vpndata.csv"
 
                 # it seems that the requests module had a bug, or didn't support content-length headers /
-                # in the response, so here we use urllib2 to do a HEAD request prior to download 
-                request2 = urllib2.Request(self.URL)
+                # in the response, so here we use urllib to do a HEAD request prior to download 
+                request2 = urllib.Request(self.URL)
                 request2.get_method = lambda : 'HEAD'
-                response2 = urllib2.urlopen(request2) 
+                response2 = urllib.urlopen(request2) 
                 total_length = int(response2.info()['Content-Length'])
 
                 Utils.create_directory_path(csvdatapath)
@@ -121,11 +114,11 @@ class VPNGateApp:
                             f.write(chunk)
                             f.flush()
         except:
-            print "[!ERROR] There was a problem fetching the data from vpngate.net\r\n"
+            print ("[!ERROR] There was a problem fetching the data from vpngate.net\r\n")
         return
 
     def grab_csv_callback(self, r, *args, **kwargs):
-        print "data returned from {url}".format(url=r.url)
+        print ("data returned from {url}".format(url=r.url))
 
         # playing with callbacks 
         #decoded_content = r.content.decode('utf-8')
@@ -136,8 +129,6 @@ class VPNGateApp:
 
 
     def grab_vpndata(self, chosenVPNName):
-	"""grabs the VPN data column from the CSV data"""
-
         file_handle.seek(0)
         for utf8_row in cr:
             if(chosenVPNName == utf8_row[0]):
@@ -146,8 +137,6 @@ class VPNGateApp:
 
 
     def parse_csv(self, chosenCountryShortCodeArg=MISSING):
-	"""parses the CSV data and formats the columns in the stdout"""
-
         global cr, MISSING, file_handle
         file_handle = open(".cache/vpndata.csv", "r")
         cr = csv.reader(file_handle, delimiter=',')
