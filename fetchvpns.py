@@ -18,14 +18,14 @@ try:
 
         print ("\r\n")
         print ("----------------------------------")
-        countryshortcode = raw_input("Now choose a country shortcode you sonofabitch: ")
+        countryshortcode = input("Now choose a country shortcode you sonofabitch: ")
         print ("you entered:", countryshortcode, "and I'm searching...")
         print ("\r\n")
         vpngate.parse_csv(countryshortcode)
 
         print ("\r\n")
         print ("----------------------------------")
-        vpnidentifier = raw_input("Give me a VPN name and let's go: ")
+        vpnidentifier = input("Give me a VPN name and let's go: ")
         print ("you entered:", vpnidentifier)
         print ("\r\n")
 

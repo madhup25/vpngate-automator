@@ -31,6 +31,6 @@ class Firewall:
 
 2. import profile from ./templates/output/ufwrules.profile
 ''')
-        raw_input("Press enter when you're done importing the rules")
+        input("Press enter when you're done importing the rules")
         
         return

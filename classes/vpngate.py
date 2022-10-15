@@ -6,6 +6,7 @@ import time
 import urllib
 from clint.textui import progress
 import re
+import base64
 
 from classes.utils import Utils
 import os 
@@ -27,11 +28,14 @@ class VPNGateApp:
 
     def write_openvpn_file(self,b64ovpndata, vpnname):
         openvpnconfigpath = ".vpnconfigs/vpnconfig_{0}.ovpn".format(vpnname)
-        decoded_ovpndata = b64ovpndata.decode('base64')
+        
+        base64_bytes = b64ovpndata.encode("ascii")
+        decoded_bytes = base64.b64decode(base64_bytes)
+        decoded_ovpndata = decoded_bytes.decode("ascii")
 
         Utils.create_directory_path(openvpnconfigpath)
 
-        fh = open(openvpnconfigpath, "wb")
+        fh = open(openvpnconfigpath, "w")
         fh.write(decoded_ovpndata)
         fh.write('\nscript-security 2\nup /etc/openvpn/update-resolv-conf\ndown /etc/openvpn/update-resolv-conf')
         fh.close()
@@ -50,17 +54,18 @@ class VPNGateApp:
         for line in open(openvpnconfigpath, 'r'):
 
             if protocol == None:
-                pattern = re.compile("^proto (tcp|udp)\r$") #tcp or udp?
+                pattern = re.compile("^proto (tcp|udp)$") #tcp or udp?
                 match = pattern.match(line)
 
                 if match:
                     print ("found: " + match.group(1))
                     protocol = match.group(1)
                 else:
-                   pass
+                    # print('protocol not found')
+                    pass
 
             if address_and_port == None:
-                pattern2 = re.compile("^remote ([0-9\.]*) ([0-9]*)\r$") #ip address and port
+                pattern2 = re.compile("^remote ([0-9\.]*) ([0-9]*)$") #ip address and port
                 match2 = pattern2.match(line)
 
                 if match2:
@@ -100,23 +105,43 @@ class VPNGateApp:
         try:
             with requests.Session() as session:
                 r = session.get(self.URL, stream=True, hooks=dict(response=self.grab_csv_callback))
+                data = r.text
+                data = data.split("\n")
+                print("length:", len(data))
 
-                csvdatapath = "cache/vpndata.csv"
+                # headers = data[1].split(",")
+                # headers[0] = headers[0].slice(1)
+                # # a = headers[-1]
+                # headers[-1] = headers[-1].split("\r")[0]
 
+
+                data = data[1:-2]
+                # print("r: ", r.text)
+                csvdatapath = "vpndata.csv"
+                # fh = open(csvdatapath, "wb")
+                # fh.write(data)
+                # fh.close()
+                print("header:", data[0])
+
+                f = open(csvdatapath, 'w')
+                w = csv.writer(f, delimiter = ',')
+                w.writerows([x.split(',') for x in data])
+                f.close()
                 # it seems that the requests module had a bug, or didn't support content-length headers /
                 # in the response, so here we use urllib to do a HEAD request prior to download 
-                request2 = urllib.Request(self.URL)
-                request2.get_method = lambda : 'HEAD'
-                response2 = urllib.urlopen(request2) 
-                total_length = int(response2.info()['Content-Length'])
-                print("total length: ", total_length)
-                Utils.create_directory_path(csvdatapath)
-                with open(csvdatapath, 'wb') as f:
-                    for chunk in progress.bar(r.iter_content(chunk_size=1024), expected_size=(total_length/1024) + 1): 
-                        if chunk:
-                            f.write(chunk)
-                            f.flush()
-        except:
+                # request2 = urllib.Request(self.URL)
+                # request2.get_method = lambda : 'HEAD'
+                # response2 = urllib.urlopen(request2) 
+                # total_length = int(response2.info()['Content-Length'])
+                # print("total length: ", total_length)
+                # Utils.create_directory_path(csvdatapath)
+                # with open(csvdatapath, 'wb') as f:
+                #     for chunk in progress.bar(r.iter_content(chunk_size=1024) + 1): 
+                #         if chunk:
+                #             f.write(chunk)
+                #             f.flush()
+        except Exception as e:
+            print(e)
             print ("[!ERROR] There was a problem fetching the data from vpngate.net\r\n")
         return
 
@@ -124,11 +149,13 @@ class VPNGateApp:
         print ("data returned from {url}".format(url=r.url))
 
         # playing with callbacks 
-        #decoded_content = r.content.decode('utf-8')
-        #fh = open(csvdatapath, "wb")
-        #fh.write(decoded_content)
-        #fh.close()
-        return
+        # csvdatapath = "vpndata.csv"
+        # decoded_content = r.content.decode('utf-8')
+        # print("decoded_content: ", decoded_content)
+        # fh = open(csvdatapath, "wb")
+        # fh.write(decoded_content)
+        # fh.close()
+        return r
 
 
     def grab_vpndata(self, chosenVPNName):
@@ -141,7 +168,7 @@ class VPNGateApp:
 
     def parse_csv(self, chosenCountryShortCodeArg=MISSING):
         global cr, MISSING, file_handle
-        file_handle = open("cache/vpndata.csv", "r")
+        file_handle = open("vpndata.csv", "r")
         cr = csv.reader(file_handle, delimiter=',')
 
         for utf8_row in cr:

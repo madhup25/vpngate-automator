@@ -5,3 +5,4 @@ templates/output/
 tags
 *.pyc
 cache
+vpndata.csv
