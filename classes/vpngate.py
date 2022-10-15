@@ -8,6 +8,9 @@ from clint.textui import progress
 import re
 
 from classes.utils import Utils
+import os 
+os.getcwd() 
+
 
 cr = None
 MISSING = object()
@@ -98,7 +101,7 @@ class VPNGateApp:
             with requests.Session() as session:
                 r = session.get(self.URL, stream=True, hooks=dict(response=self.grab_csv_callback))
 
-                csvdatapath = ".cache/vpndata.csv"
+                csvdatapath = "cache/vpndata.csv"
 
                 # it seems that the requests module had a bug, or didn't support content-length headers /
                 # in the response, so here we use urllib to do a HEAD request prior to download 
@@ -106,7 +109,7 @@ class VPNGateApp:
                 request2.get_method = lambda : 'HEAD'
                 response2 = urllib.urlopen(request2) 
                 total_length = int(response2.info()['Content-Length'])
-
+                print("total length: ", total_length)
                 Utils.create_directory_path(csvdatapath)
                 with open(csvdatapath, 'wb') as f:
                     for chunk in progress.bar(r.iter_content(chunk_size=1024), expected_size=(total_length/1024) + 1): 
@@ -138,7 +141,7 @@ class VPNGateApp:
 
     def parse_csv(self, chosenCountryShortCodeArg=MISSING):
         global cr, MISSING, file_handle
-        file_handle = open(".cache/vpndata.csv", "r")
+        file_handle = open("cache/vpndata.csv", "r")
         cr = csv.reader(file_handle, delimiter=',')
 
         for utf8_row in cr:

@@ -4,3 +4,4 @@
 templates/output/
 tags
 *.pyc
+cache
